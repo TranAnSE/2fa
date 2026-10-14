@@ -13639,6 +13639,7 @@ async function startCameraScan() {
   cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
   cameraPreview.srcObject = cameraStream;
   await cameraPreview.play();
+  stopCameraBtn.disabled = false;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   cameraScanTimer = setInterval(async () => {
@@ -13681,6 +13682,7 @@ function stopCameraScan() {
   }
   cameraStream = null;
   cameraPreview.srcObject = null;
+  stopCameraBtn.disabled = true;
 }
 function registerPwaSupport() {
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -13788,6 +13790,10 @@ function bindEvents() {
   qrFileInput.addEventListener("change", async () => {
     const [file] = qrFileInput.files || [];
     if (!file) return;
+    const fileNameLabel = document.getElementById("qr-file-name");
+    const fileBtn = qrFileInput.closest(".file-btn");
+    if (fileNameLabel) fileNameLabel.textContent = file.name;
+    fileBtn?.classList.add("has-file");
     setImportStatus("Reading QR file...");
     try {
       await importFromQrBlob(file, "QR file");
@@ -13796,6 +13802,8 @@ function bindEvents() {
       setImportStatus(toUserMessage(error, "Failed to import QR file"), "error");
     } finally {
       qrFileInput.value = "";
+      if (fileNameLabel) fileNameLabel.textContent = "Choose image file\u2026";
+      fileBtn?.classList.remove("has-file");
     }
   });
   importQrUrlBtn.addEventListener("click", async () => {
@@ -13999,6 +14007,17 @@ function bindEvents() {
     button.addEventListener("click", () => button.closest("dialog")?.close());
   });
   document.getElementById("add-dialog")?.addEventListener("close", stopCameraScan);
+  for (const sheetId of ["add-dialog", "settings-dialog", "history-dialog"]) {
+    const sheet = document.getElementById(sheetId);
+    if (!sheet) continue;
+    let backdropPointerDown = false;
+    sheet.addEventListener("pointerdown", (event) => {
+      backdropPointerDown = event.target === sheet;
+    });
+    sheet.addEventListener("click", (event) => {
+      if (event.target === sheet && backdropPointerDown) sheet.close();
+    });
+  }
   document.getElementById("biometric-unlock-btn")?.addEventListener("click", () => {
     unlockWithBiometrics();
   });

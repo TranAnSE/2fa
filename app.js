@@ -2285,6 +2285,7 @@ async function startCameraScan() {
   cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
   cameraPreview.srcObject = cameraStream;
   await cameraPreview.play();
+  stopCameraBtn.disabled = false;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   cameraScanTimer = setInterval(async () => {
@@ -2331,6 +2332,7 @@ function stopCameraScan() {
   }
   cameraStream = null;
   cameraPreview.srcObject = null;
+  stopCameraBtn.disabled = true;
 }
 function registerPwaSupport() {
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -2438,6 +2440,10 @@ function bindEvents() {
   qrFileInput.addEventListener("change", async () => {
     const [file] = qrFileInput.files || [];
     if (!file) return;
+    const fileNameLabel = document.getElementById("qr-file-name");
+    const fileBtn = qrFileInput.closest(".file-btn");
+    if (fileNameLabel) fileNameLabel.textContent = file.name;
+    fileBtn?.classList.add("has-file");
     setImportStatus("Reading QR file...");
     try {
       await importFromQrBlob(file, "QR file");
@@ -2446,6 +2452,8 @@ function bindEvents() {
       setImportStatus(toUserMessage(error, "Failed to import QR file"), "error");
     } finally {
       qrFileInput.value = "";
+      if (fileNameLabel) fileNameLabel.textContent = "Choose image file…";
+      fileBtn?.classList.remove("has-file");
     }
   });
   importQrUrlBtn.addEventListener("click", async () => {
@@ -2651,9 +2659,23 @@ function bindEvents() {
   document.querySelectorAll("[data-sheet-close]").forEach((button) => {
     button.addEventListener("click", () => button.closest("dialog")?.close());
   });
-  // Closing the Add sheet by any path (Escape, X, save) must release the
-  // camera: the stream and scan timer would otherwise outlive the panel.
+  // Closing the Add sheet by any path (Escape, X, save, backdrop click) must
+  // release the camera: the stream and scan timer would otherwise outlive
+  // the panel.
   document.getElementById("add-dialog")?.addEventListener("close", stopCameraScan);
+  // Clicking the backdrop beside a sheet dismisses it. The pointerdown guard
+  // keeps text-selection drags that end outside the sheet from closing it.
+  for (const sheetId of ["add-dialog", "settings-dialog", "history-dialog"]) {
+    const sheet = document.getElementById(sheetId);
+    if (!sheet) continue;
+    let backdropPointerDown = false;
+    sheet.addEventListener("pointerdown", (event) => {
+      backdropPointerDown = event.target === sheet;
+    });
+    sheet.addEventListener("click", (event) => {
+      if (event.target === sheet && backdropPointerDown) sheet.close();
+    });
+  }
   document.getElementById("biometric-unlock-btn")?.addEventListener("click", () => {
     unlockWithBiometrics();
   });

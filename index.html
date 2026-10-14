@@ -277,10 +277,10 @@
                   <span>Paste one or many `otpauth://` URIs</span>
                   <textarea id="uri" rows="3" placeholder="Paste one or many OTP URIs here. The vault will preview valid matches before import."></textarea>
                 </label>
-                <div class="actions">
-                  <button type="button" id="parse-uri" class="btn ghost">Import otpauth:// URI</button>
+                <div class="actions actions-stack">
+                  <button type="button" id="parse-uri" class="btn">Import otpauth:// URI</button>
                   <button type="button" id="import-ga" class="btn ghost">Import Google Authenticator</button>
-                  <button type="button" id="import-clipboard" class="btn ghost">Clipboard</button>
+                  <button type="button" id="import-clipboard" class="btn ghost">Import from clipboard</button>
                 </div>
               </section>
 
@@ -288,14 +288,17 @@
                 <div class="grid import-grid">
                   <label>
                     <span>QR image file</span>
-                    <input id="qr-file" type="file" accept="image/*">
+                    <span class="file-btn">
+                      <input id="qr-file" type="file" accept="image/*">
+                      <span id="qr-file-name">Choose image file…</span>
+                    </span>
                   </label>
 
                   <label>
                     <span>QR image URL</span>
                     <div class="inline-action">
                       <input id="qr-url" type="url" placeholder="https://example.com/qr.png">
-                      <button type="button" id="import-qr-url" class="btn ghost small">Import</button>
+                      <button type="button" id="import-qr-url" class="btn ghost">Import</button>
                     </div>
                   </label>
                 </div>
@@ -306,8 +309,8 @@
                   <div class="scan-head">
                     <p class="helper-text">A scan is only accepted after it repeats over two frames, reducing accidental false positives.</p>
                     <div class="scan-actions">
-                      <button type="button" id="start-camera" class="btn ghost small">Start Camera</button>
-                      <button type="button" id="stop-camera" class="btn ghost small">Stop</button>
+                      <button type="button" id="start-camera" class="btn small">Start Camera</button>
+                      <button type="button" id="stop-camera" class="btn ghost small" disabled>Stop</button>
                     </div>
                   </div>
                   <video id="camera-preview" playsinline muted></video>

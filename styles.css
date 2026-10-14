@@ -1350,16 +1350,16 @@ body.dragging-entry {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--ctl-sm);
+  min-height: 40px;
   border-radius: var(--r-sm);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--muted);
   cursor: pointer;
   transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
   text-align: center;
   white-space: nowrap;
-  padding: 0 var(--s2);
+  padding: 0 var(--s3);
 }
 
 .tab-panels {
@@ -1384,6 +1384,59 @@ body.dragging-entry {
 
 .tab-panel {
   display: none;
+}
+
+/* Styled native file picker: the input stays focusable for keyboard
+   activation but the visible face is a design-system control that shows
+   the chosen file name. */
+.file-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: var(--ctl);
+  padding: var(--s2) var(--s3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.file-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.file-btn:focus-within {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.file-btn input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-btn.has-file {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.actions-stack {
+  display: grid;
+  gap: var(--s2);
+}
+
+.actions-stack .btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .tab-input:nth-of-type(1):checked ~ .tab-panels .tab-panel:nth-of-type(1),
