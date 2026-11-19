@@ -33,10 +33,16 @@ const seedSettings = (theme) =>
   });
 
 function startServer() {
-  // shell:true is required on win32 (spawn EINVAL on .cmd shims since
-  // CVE-2024-27980 hardening); single string avoids the DEP0190 warning.
-  const command = `npx http-server . -p ${PORT} -c-1 --silent`;
-  const child = spawn(command, { stdio: "ignore", shell: process.platform === "win32" });
+  const args = ["http-server", ".", "-p", String(PORT), "-c-1", "--silent"];
+  // win32: shell:true is required (.cmd shims since CVE-2024-27980) and the
+  // single-string form avoids DEP0190. POSIX: classic args form — shell:false
+  // with a space-bearing string would treat the whole line as one executable.
+  const child = process.platform === "win32"
+    ? spawn(`npx ${args.join(" ")}`, { stdio: "ignore", shell: true })
+    : spawn("npx", args, { stdio: "ignore" });
+  // Surface spawn failures (ENOENT etc.) cleanly instead of crashing on an
+  // unhandled 'error' event; waitForServer turns it into a timeout message.
+  child.on("error", (error) => console.error(`qa:ui server spawn failed: ${error.message}`));
   return child;
 }
 
@@ -103,6 +109,8 @@ async function main() {
   if (!alreadyUp) {
     server = startServer();
     await waitForServer();
+  } else {
+    console.log(`reusing existing server on port ${PORT}`);
   }
 
   const browser = await chromium.launch();

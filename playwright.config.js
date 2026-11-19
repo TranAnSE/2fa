@@ -26,6 +26,9 @@ export default defineConfig({
       // `playwright test --project=extension --workers=1`.
       name: "extension",
       testMatch: /extension.*\.spec\.js/,
+      // Unlock/backup assertions are bound to a 600k-iteration PBKDF2 and can
+      // exceed the 5s default under CI CPU contention (the historical flake).
+      expect: { timeout: 15_000 },
       use: { ...devices["Desktop Chrome"] },
     },
   ],

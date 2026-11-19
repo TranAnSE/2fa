@@ -15,8 +15,8 @@ Last updated: 2026-10-15
 - **Format**: ESM with no sourcemaps (configured in `scripts/build.mjs`)
 
 ### Styling and Design Tokens
-- **Token-first CSS**: every color, size, spacing, radius, and duration comes from the token scales defined at the top of `styles.css`; extend the scales rather than hardcoding values
-- **Shared vocabulary**: `extension/popup.css` uses the same token names (oklch color ramps, `--s1..--s8` spacing, type scale, control heights, radii, motion); update both stylesheets together so the web app and extension stay visually in sync
+- **Token-first CSS**: every color, size, spacing, radius, and duration comes from the token scales; extend the scales rather than hardcoding values
+- **Shared tokens live in `styles/tokens.css`**: spacing base (`--s1..--s4`), radius family, motion, and the full two-theme color system are defined once there and bundled by `scripts/build.mjs` into `styles.bundle.css` + `extension/popup.bundle.css` — never duplicate them into a frontend stylesheet. Frontend-specific scales (fonts, type, control heights, larger spacing stops, shadows) stay at the top of `styles.css` / `extension/popup.css`
 - **Themes**: dark is the default; keep the Light/System themes aligned with it — small UI labels must meet 4.5:1 contrast in both themes
 - **Motion**: honor `prefers-reduced-motion` for animations
 

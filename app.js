@@ -2525,7 +2525,13 @@ function bindEvents() {
     setSettingsStatus(t("settings.driftCheckDone"), "success");
   });
   document.addEventListener("keydown", (event) => {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
     // A dialog owning focus means its own keys matter; global shortcuts
     // firing underneath it jumped focus out of open dialogs ("n" broke the
     // settings sheet this way — P2 from the UI audit).
@@ -2542,12 +2548,18 @@ function bindEvents() {
       // left users staring at a closed dialog.
       openAddDialog("manual");
     }
-    // Number keys copy the Nth visible entry's code (1-based, screen order):
+    // Number keys copy the Nth visible entry's code (1-based, screen order —
+    // group mode renders groups in sequence, so the flat list must follow
+    // the same grouping to keep the index honest):
     // the single most common action in a 2FA vault should not need a mouse.
     // Reuse the row's own Copy button so every cue (history entry, "Copied"
-    // feedback, HOTP counter advance) behaves identically.
+    // feedback, HOTP counter advance) behaves identically. Held keys repeat
+    // the click, and for HOTP entries each copy advances a persisted
+    // counter — so repeats are refused.
     if (/^[1-9]$/.test(event.key)) {
-      const entry = getVisibleEntries()[Number(event.key) - 1];
+      if (event.repeat) return;
+      const visible = getEntryGroups().flatMap(([, groupEntries]) => groupEntries);
+      const entry = visible[Number(event.key) - 1];
       const node = entry ? entryNodes.get(entry.id) : null;
       node?.querySelector(".copy")?.click();
     }

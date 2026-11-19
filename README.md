@@ -102,7 +102,7 @@ Suggested flow:
 - If the extension `version` value changes, the workflow builds the extension bundle, creates tag `extension-v<version>`, and publishes a GitHub Release.
 - The release attaches the packaged extension archive for that version.
 - You can also trigger the same workflow manually from the Actions tab.
-- Release checklist: if the release changes `app.bundle.js`, bump `CACHE_NAME` in `sw.js` in the same release — cache-first service-worker serving otherwise keeps stale bundles alive in already-open tabs.
+- Release checklist: if the release changes `app.bundle.js` or `styles.bundle.css`, bump `CACHE_NAME` in `sw.js` in the same release — an installed service worker only re-runs its install step (and re-caches the new APP_SHELL) when the cache name changes.
 
 ## Documentation
 

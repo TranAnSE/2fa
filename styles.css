@@ -1551,6 +1551,10 @@ body.dragging-entry {
   .entry-group-title {
     grid-column: 1 / -1;
   }
+
+  .workspace-empty {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 900px) {
