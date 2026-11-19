@@ -1,13 +1,18 @@
-const CACHE_NAME = "otp-vault-cache-v8";
+const CACHE_NAME = "otp-vault-cache-v10";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./styles.bundle.css",
   "./app.bundle.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./fonts/space-grotesk-latin.woff2",
+  "./fonts/space-grotesk-vietnamese.woff2",
+  "./fonts/space-grotesk-latin-ext.woff2",
+  "./fonts/ibm-plex-mono-latin-400.woff2",
+  "./fonts/ibm-plex-mono-latin-500.woff2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -47,18 +52,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Network-first for same-origin assets (shell, bundles, styles): users
+  // always get fresh code when online, and the cache only serves as the
+  // offline fallback. The previous cache-first handler served stale
+  // stylesheets and bundles forever across releases that forgot to bump
+  // CACHE_NAME (P1 from the UI audit — observed live during the audit).
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const networkFetch = fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => cached);
-
-      if (cached) return cached;
-      return networkFetch;
-    })
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(async () => (await caches.match(event.request)) || Response.error())
   );
 });

@@ -1,0 +1,115 @@
+/* ============================================================
+   OTP Vault — shared design tokens (single source of truth)
+   Consumed by BOTH the web app (styles.css) and the extension
+   popup (extension/popup.css) via esbuild CSS bundling. Only
+   tokens that are identical across the two frontends live here:
+   spacing s1–s4, the radius family, motion, and the full color
+   system. Everything frontend-specific (font stacks, type
+   scale, control heights, larger spacing stops, shadows) stays
+   in the importing stylesheet.
+   Light-theme accent is the WCAG AA value (5.28:1 on cream).
+   ============================================================ */
+
+:root {
+  /* 4pt spacing scale (s5–s8 are frontend-specific) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+
+  /* Radius family */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 999px;
+
+  /* Motion */
+  --fast: 120ms;
+  --dur: 180ms;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* Dark palette (default; warm charcoal, cream text, signal orange) */
+  --bg: oklch(17.5% 0.006 65);
+  --surface: oklch(21.5% 0.007 65);
+  --surface-raised: oklch(24% 0.008 65);
+  --sunken: oklch(15% 0.006 60);
+  --border: oklch(31% 0.008 65);
+  --border-strong: oklch(40% 0.01 65);
+  --text: oklch(93% 0.006 78);
+  --muted: oklch(74% 0.009 72);
+  --subtle: oklch(63% 0.011 70);
+  --accent: oklch(71% 0.155 45);
+  --accent-hover: oklch(76% 0.14 45);
+  --accent-soft: oklch(28% 0.055 45);
+  --accent-text: oklch(84% 0.09 50);
+  --on-accent: oklch(24% 0.06 45);
+  --success: oklch(78% 0.12 155);
+  --success-text: oklch(80% 0.11 155);
+  --danger: oklch(66% 0.17 25);
+  --danger-soft: oklch(28% 0.05 25);
+  --danger-text: oklch(82% 0.08 25);
+  --warning: oklch(82% 0.12 90);
+  --warning-text: oklch(84% 0.11 95);
+  --focus-ring: oklch(71% 0.155 45 / 0.6);
+  --scrim: oklch(12% 0.01 65 / 0.68);
+  --scrim-soft: oklch(12% 0.01 65 / 0.45);
+  color-scheme: dark;
+}
+
+/* ---------- Light theme: explicit toggle and system-follow ---------- */
+:root[data-theme="light"] {
+  --bg: oklch(96.8% 0.005 80);
+  --surface: oklch(99.2% 0.003 80);
+  --surface-raised: oklch(99.6% 0.002 80);
+  --sunken: oklch(94.5% 0.007 80);
+  --border: oklch(88% 0.008 80);
+  --border-strong: oklch(78% 0.012 80);
+  --text: oklch(27% 0.012 70);
+  --muted: oklch(45% 0.013 72);
+  --subtle: oklch(51% 0.013 72);
+  --accent: oklch(54% 0.17 42);
+  --accent-hover: oklch(49% 0.17 42);
+  --accent-soft: oklch(94% 0.03 50);
+  --accent-text: oklch(52% 0.14 45);
+  --on-accent: oklch(99% 0.005 80);
+  --success: oklch(56% 0.12 155);
+  --success-text: oklch(46% 0.11 155);
+  --danger: oklch(54% 0.17 25);
+  --danger-soft: oklch(95% 0.02 25);
+  --danger-text: oklch(46% 0.15 25);
+  --warning: oklch(60% 0.13 85);
+  --warning-text: oklch(44% 0.11 85);
+  --focus-ring: oklch(54% 0.17 42 / 0.55);
+  --scrim: oklch(28% 0.02 70 / 0.45);
+  --scrim-soft: oklch(28% 0.02 70 / 0.25);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: oklch(96.8% 0.005 80);
+    --surface: oklch(99.2% 0.003 80);
+    --surface-raised: oklch(99.6% 0.002 80);
+    --sunken: oklch(94.5% 0.007 80);
+    --border: oklch(88% 0.008 80);
+    --border-strong: oklch(78% 0.012 80);
+    --text: oklch(27% 0.012 70);
+    --muted: oklch(45% 0.013 72);
+    --subtle: oklch(51% 0.013 72);
+    --accent: oklch(54% 0.17 42);
+    --accent-hover: oklch(49% 0.17 42);
+    --accent-soft: oklch(94% 0.03 50);
+    --accent-text: oklch(52% 0.14 45);
+    --on-accent: oklch(99% 0.005 80);
+    --success: oklch(56% 0.12 155);
+    --success-text: oklch(46% 0.11 155);
+    --danger: oklch(54% 0.17 25);
+    --danger-soft: oklch(95% 0.02 25);
+    --danger-text: oklch(46% 0.15 25);
+    --warning: oklch(60% 0.13 85);
+    --warning-text: oklch(44% 0.11 85);
+    --focus-ring: oklch(54% 0.17 42 / 0.55);
+    --scrim: oklch(28% 0.02 70 / 0.45);
+    --scrim-soft: oklch(28% 0.02 70 / 0.25);
+    color-scheme: light;
+  }
+}

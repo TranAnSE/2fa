@@ -439,19 +439,22 @@ test("extension stays locked across repeated wrong unlock attempts before succes
 
     await lockedPage.locator("#unlock-passphrase").fill("wrong one");
     await lockedPage.locator("#unlock-btn").click();
-    await expect(lockedPage.locator("#unlock-status")).toContainText("Incorrect passphrase");
+    // Unlock attempts run a 600k-iteration PBKDF2; under CI CPU contention
+    // that can exceed the default 5s expect timeout (the historical flake),
+    // so give the KDF-bound assertions a generous ceiling.
+    await expect(lockedPage.locator("#unlock-status")).toContainText("Incorrect passphrase", { timeout: 20000 });
     await expect(lockedPage.locator("#unlock-panel")).toBeVisible();
     await expect(lockedPage.locator(".entry-card")).toHaveCount(0);
 
     await lockedPage.locator("#unlock-passphrase").fill("wrong two");
     await lockedPage.locator("#unlock-btn").click();
-    await expect(lockedPage.locator("#unlock-status")).toContainText("Incorrect passphrase");
+    await expect(lockedPage.locator("#unlock-status")).toContainText("Incorrect passphrase", { timeout: 20000 });
     await expect(lockedPage.locator("#unlock-panel")).toBeVisible();
     await expect(lockedPage.locator(".entry-card")).toHaveCount(0);
 
     await lockedPage.locator("#unlock-passphrase").fill("correct horse battery");
     await lockedPage.locator("#unlock-btn").click();
-    await expect(lockedPage.locator("#unlock-status")).toContainText("Vault unlocked");
+    await expect(lockedPage.locator("#unlock-status")).toContainText("Vault unlocked", { timeout: 20000 });
     await expect(lockedPage.locator("#unlock-panel")).toBeHidden();
     await expect(lockedPage.locator(".entry-card")).toHaveCount(1);
   } finally {
@@ -882,13 +885,13 @@ test("extension removes individual entries with destructive actions", async () =
     await expect(page.locator(".entry-card")).toHaveCount(2);
     await expect(page.locator(".issuer")).toContainText(["Alpha", "Beta"]);
 
-    await page.locator(".entry-card").first().getByRole("button", { name: "x" }).click();
+    await page.locator(".entry-card").first().getByRole("button", { name: "Remove" }).click();
     await expect(page.locator("#confirm-remove-dialog")).toBeVisible();
     await page.locator("#confirm-remove").click();
     await expect(page.locator(".entry-card")).toHaveCount(1);
     await expect(page.locator(".issuer")).toHaveText("Beta");
 
-    await page.locator(".entry-card").first().getByRole("button", { name: "x" }).click();
+    await page.locator(".entry-card").first().getByRole("button", { name: "Remove" }).click();
     await expect(page.locator("#confirm-remove-dialog")).toBeVisible();
     await page.locator("#confirm-remove").click();
     await expect(page.locator(".entry-card")).toHaveCount(0);
@@ -936,7 +939,7 @@ test("extension preserves entries when encrypted entry removal persistence fails
       };
     });
 
-    await page.locator(".entry-card").first().getByRole("button", { name: "x" }).click();
+    await page.locator(".entry-card").first().getByRole("button", { name: "Remove" }).click();
     await expect(page.locator("#confirm-remove-dialog")).toBeVisible();
     await page.locator("#confirm-remove").click();
     await expect(page.locator("#status")).toContainText("Simulated extension remove failure");

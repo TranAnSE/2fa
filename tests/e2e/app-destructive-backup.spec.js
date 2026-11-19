@@ -421,7 +421,7 @@ test("preserves encrypted vault settings and unlock behavior after backup replac
   await page.reload();
   await expect(page.locator("#unlock-panel")).toBeVisible();
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
 
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1b1d21">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f4ef">
+  <meta name="theme-color" content="#12100e">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f4f1">
   <title>Personal OTP Vault</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' https:; base-uri 'none'; form-action 'none'">
   <link rel="icon" href="./favicon.ico" sizes="any">
@@ -13,7 +13,7 @@
   <link rel="icon" href="./icons/favicon-16x16.png" sizes="16x16" type="image/png">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.bundle.css">
 </head>
 <body>
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="false"></div>
@@ -27,6 +27,11 @@
   <div id="backup-reminder-banner" class="data-banner hidden" role="status">
     <span id="backup-reminder-text" data-i18n="banner.backupReminder">No vault export in over 30 days — export a backup from the settings below.</span>
     <button type="button" id="backup-reminder-dismiss" class="btn small ghost" data-i18n="common.dismiss">Dismiss</button>
+  </div>
+
+  <div id="session-mode-banner" class="data-banner warning hidden" role="status">
+    <span data-i18n="banner.sessionOnly">Entries live only in this browser tab — they are lost on reload. Enable device storage to keep them.</span>
+    <button type="button" id="session-mode-enable" class="btn small ghost" data-i18n="banner.enablePersistence">Enable storage</button>
   </div>
 
   <div id="drift-banner" class="data-banner warning hidden" role="alert">
@@ -51,26 +56,33 @@
 
       <div class="topbar-search">
         <label class="search-wrap">
-          <input id="search" type="search" aria-label="Search entries" data-i18n-aria-label="topbar.searchLabel" data-i18n-placeholder="topbar.searchPlaceholder" placeholder="Search issuer, account, or tag">
+          <input id="search" type="search" aria-label="Search entries" aria-keyshortcuts="/" data-i18n-aria-label="topbar.searchLabel" data-i18n-placeholder="topbar.searchPlaceholder" placeholder="Search issuer, account, or tag">
         </label>
       </div>
 
-      <div class="topbar-timer" aria-label="OTP refresh timer" data-i18n-aria-label="ext.globalTimerLabel">
+      <div class="topbar-timer" role="timer" aria-label="OTP refresh timer" data-i18n-aria-label="ext.globalTimerLabel">
         <span id="timer-value">30s</span>
         <div class="timer-track"><div id="timer-bar"></div></div>
       </div>
 
       <div class="topbar-actions">
         <button type="button" id="open-history-dialog" class="icon-btn" aria-label="Copy history" data-i18n-aria-label="topbar.copyHistory" data-i18n-title="topbar.copyHistory">
-          <span aria-hidden="true">◷</span>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="16" height="16">
+            <circle cx="8" cy="8" r="6"></circle>
+            <path d="M8 4.5V8l2.5 1.5"></path>
+          </svg>
           <span class="count" id="history-count" aria-hidden="true">0</span>
         </button>
         <button type="button" id="install-app" class="btn small ghost" data-i18n="topbar.install">Install App</button>
         <button type="button" id="lock-app" class="btn small ghost" data-i18n="topbar.lock">Lock Vault</button>
         <button type="button" id="open-settings-dialog" class="icon-btn" aria-label="Vault settings" data-i18n-aria-label="topbar.settings" data-i18n-title="topbar.settings">
-          <span aria-hidden="true">⚙</span>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="16" height="16">
+            <path d="M2.5 5h11M2.5 11h11"></path>
+            <circle cx="6" cy="5" r="1.8"></circle>
+            <circle cx="10" cy="11" r="1.8"></circle>
+          </svg>
         </button>
-        <button type="button" id="open-add-dialog" class="btn small primary" data-i18n="topbar.add">+ Add</button>
+        <button type="button" id="open-add-dialog" class="btn small primary" data-i18n="topbar.add" aria-keyshortcuts="n">+ Add</button>
       </div>
     </header>
 
@@ -152,7 +164,7 @@
         </div>
       </section>
 
-      <div id="entries" class="entries" aria-live="polite"></div>
+      <div id="entries" class="entries"></div>
     </main>
   </div>
 
@@ -168,7 +180,7 @@
           <p class="entry-account"></p>
           <div class="entry-tag-row"></div>
         </div>
-        <p class="entry-code">------</p>
+        <button type="button" class="entry-code" data-i18n-aria-label="entries.copyCodeHint" aria-label="Click to copy this code">------</button>
       </div>
       <div class="entry-side">
         <div class="entry-countdown">
@@ -183,7 +195,13 @@
           </svg>
         </div>
         <div class="entry-actions">
-          <button type="button" class="drag-handle" aria-label="Reorder entry" title="Drag to reorder" data-i18n-aria-label="entries.reorder" data-i18n-title="entries.dragToReorder">⠿</button>
+          <button type="button" class="drag-handle" aria-label="Reorder entry" title="Drag to reorder" data-i18n-aria-label="entries.reorder" data-i18n-title="entries.dragToReorder">
+            <svg viewBox="0 0 16 16" fill="currentColor" stroke="none" aria-hidden="true" width="14" height="14">
+              <circle cx="5.5" cy="3.5" r="1.2"></circle><circle cx="10.5" cy="3.5" r="1.2"></circle>
+              <circle cx="5.5" cy="8" r="1.2"></circle><circle cx="10.5" cy="8" r="1.2"></circle>
+              <circle cx="5.5" cy="12.5" r="1.2"></circle><circle cx="10.5" cy="12.5" r="1.2"></circle>
+            </svg>
+          </button>
           <button type="button" class="btn small copy" data-i18n="entries.copy">Copy</button>
           <button type="button" class="btn small reveal" data-i18n="entries.reveal">Reveal</button>
           <button type="button" class="btn small pin" data-i18n="entries.pin">Pin</button>
@@ -202,12 +220,16 @@
       <div class="sheet-head">
         <p class="eyebrow" data-i18n="add.eyebrow">vault controls</p>
         <h2 id="add-dialog-heading" data-i18n="add.heading">Add &amp; import entries</h2>
-        <button type="button" class="icon-btn" data-sheet-close aria-label="Close panel" data-i18n-aria-label="common.close">✕</button>
+        <button type="button" class="icon-btn" data-sheet-close aria-label="Close panel" data-i18n-aria-label="common.close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" width="14" height="14">
+            <path d="M4 4l8 8M12 4l-8 8"></path>
+          </svg>
+        </button>
       </div>
 
       <div class="sheet-body">
         <form id="otp-form" autocomplete="off">
-          <div class="add-tabs" role="radiogroup" aria-label="Add entry methods">
+          <div class="add-tabs" role="radiogroup" aria-label="Add entry methods" data-i18n-aria-label="add.methodsLabel">
             <input type="radio" class="tab-input" name="add-tabs" id="tab-manual" checked>
             <label class="tab" for="tab-manual" data-i18n="add.tabManual">Manual</label>
             <input type="radio" class="tab-input" name="add-tabs" id="tab-paste">
@@ -338,7 +360,11 @@
       <div class="sheet-head">
         <p class="eyebrow" data-i18n="settings.eyebrow">privacy</p>
         <h2 id="settings-dialog-heading" tabindex="-1" autofocus data-i18n="settings.heading">Device &amp; backup controls</h2>
-        <button type="button" class="icon-btn" data-sheet-close aria-label="Close panel" data-i18n-aria-label="common.close">✕</button>
+        <button type="button" class="icon-btn" data-sheet-close aria-label="Close panel" data-i18n-aria-label="common.close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" width="14" height="14">
+            <path d="M4 4l8 8M12 4l-8 8"></path>
+          </svg>
+        </button>
       </div>
 
       <div class="sheet-body">
@@ -461,7 +487,11 @@
       <div class="sheet-head">
         <p class="eyebrow" data-i18n="history.eyebrow">recent activity</p>
         <h2 id="history-dialog-heading" tabindex="-1" autofocus data-i18n="history.heading">Copy History</h2>
-        <button type="button" class="icon-btn" data-sheet-close aria-label="Close panel" data-i18n-aria-label="common.close">✕</button>
+        <button type="button" class="icon-btn" data-sheet-close aria-label="Close panel" data-i18n-aria-label="common.close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" width="14" height="14">
+            <path d="M4 4l8 8M12 4l-8 8"></path>
+          </svg>
+        </button>
       </div>
       <div class="sheet-body">
         <ul id="copy-history" class="history-list"></ul>

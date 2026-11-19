@@ -96,7 +96,7 @@ test("encrypted persisted vault unlocks and renders entries offline after reload
   await expect(offlinePage.locator(".entry")).toHaveCount(0);
 
   await offlinePage.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await offlinePage.getByRole("button", { name: "Unlock Vault" }).click();
+  await offlinePage.locator("#unlock-btn").click();
 
   await expect(offlinePage.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(offlinePage.locator(".entry")).toHaveCount(1);

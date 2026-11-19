@@ -82,6 +82,9 @@ test("imports OTP URIs from surrounding text and supports search, pin, and remov
   await page.getByRole("button", { name: "Import Entries" }).click();
   await addEntry(page, { label: "Zeta:user@example.com", secret: SECONDARY_SECRET });
 
+  // Reorder buttons exist only in Manual order mode now (audit P2: Up/Down
+  // made no sense under Pinned + A-Z and wrapped the mobile action row).
+  await page.locator("#sort-select").selectOption("custom");
   await page.locator(".entry").nth(1).getByRole("button", { name: "Up" }).click();
   await expect(page.locator(".entry-label").first()).toHaveText("Zeta");
 
@@ -125,7 +128,7 @@ test("persists encrypted vaults and unlocks after reload", async ({ page }) => {
   await page.reload();
   await expect(page.locator("#unlock-panel")).toBeVisible();
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
 
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);
@@ -518,7 +521,7 @@ test("web security form must not silently change active passphrase for existing 
   await page.reload();
   await expect(page.locator("#unlock-panel")).toBeVisible();
   await page.locator("#unlock-passphrase").fill(originalPassphrase);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
 
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);
@@ -551,7 +554,7 @@ test("web dedicated passphrase change updates unlock passphrase", async ({ page 
   await page.reload();
   await expect(page.locator("#unlock-panel")).toBeVisible();
   await page.locator("#unlock-passphrase").fill(newPassphrase);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
 
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);
@@ -641,7 +644,7 @@ test("encrypted backup import with a different passphrase must not silently chan
   await page.reload();
   await expect(page.locator("#unlock-panel")).toBeVisible();
   await page.locator("#unlock-passphrase").fill(passphraseA);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
 
   await openSettingsSheet(page);
@@ -662,7 +665,7 @@ test("encrypted backup import with a different passphrase must not silently chan
   await page.reload();
   await expect(page.locator("#unlock-panel")).toBeVisible();
   await page.locator("#unlock-passphrase").fill(passphraseA);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
 
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);
@@ -714,7 +717,7 @@ test("renders copy history labels as text instead of HTML", async ({ page }) => 
   await loadApp(page);
   await addEntry(page, { label: 'Issuer:<img src=x onerror="window.__otpVaultHistoryXss = true">', secret: PRIMARY_SECRET });
 
-  await page.locator(".entry").first().getByRole("button", { name: "Copy" }).click();
+  await page.locator(".entry").first().getByRole("button", { name: "Copy", exact: true }).click();
 
   await expect(page.locator("#copy-history img")).toHaveCount(0);
   await expect(page.evaluate(() => window.__otpVaultHistoryXss === true)).resolves.toBe(false);
