@@ -1,5 +1,102 @@
 # Changelog
 
+## Unreleased
+
+UI/UX audit fixes (2 P0, 7 P1, plus P2/P3 polish from the November UI audit —
+`.qa/ui-audit/` holds the full evidence and reports). Both frontends unless
+noted.
+
+Follow-up hardening wave (flake root cause, shared design system, CI gate):
+
+### Added
+
+- **`npm run qa:ui` UI quality gate**: axe-core scans (WCAG 2.x A/AA) at
+  mobile/tablet/desktop widths plus a light-theme pass — serious/critical
+  violations fail the run — and a responsive sweep writing screenshots to
+  `.qa/ui-sweep/` at 360/390/640/768/834/1280. Wired into CI after the test
+  job.
+- **Copy hotkeys 1–9**: number keys copy the Nth visible entry's code in
+  screen order; they never fire while typing in inputs/dialogs or with a
+  modifier held.
+- **Tablet layout band (761–900px)**: entries render as a two-column grid so
+  cards stop stretching ~800px wide (Manual order mode keeps one column —
+  the vertical-only drop-index math would misplace same-row drops).
+
+### Changed
+
+- **Shared design tokens are now a real package**: `styles/tokens.css` is the
+  single source for the spacing base (s1–s4), radius family, motion, and the
+  full color system in both themes; esbuild bundles it into
+  `styles.bundle.css` and `extension/popup.bundle.css` (which the documents
+  now load). Divergent copies in `styles.css` / `extension/popup.css` are
+  deleted, vendored font URLs keep their pre-cached paths, and the service
+  worker shell is bumped to `otp-vault-cache-v10`.
+- Extension popup adopts the web app's `.btn primary` / `.btn ghost` classes;
+  the divergent `ghost-btn` / `primary-btn` names are gone.
+
+### Fixed
+
+- **Extension unlock ran the 600k-iteration PBKDF2 twice** — the handler
+  derived a key handle and then called `decryptVaultEntries`, which re-derives
+  the same key internally. It now reuses the handle via
+  `decryptVaultEntriesWithKey` (the DEK branch already did), halving unlock
+  latency on slow devices. The redundant KDF was also the root cause of the
+  flaky "stays locked across repeated wrong unlock attempts" e2e test under
+  CI CPU contention; those KDF-bound assertions now allow 20s.
+
+### Fixed
+
+- **Backup/session banners no longer overlay the toolbar** (P0): `.data-banner`
+  and `.vault-stale-banner` render in the document flow above the workspace
+  instead of `position: fixed`, which used to cover the PINNED chip and the
+  Sort/Group controls on desktop and intercept their clicks.
+- **Session mode warns before data loss** (P0): with persistence off and
+  entries present, a warning banner ("Entries live only in this browser tab…")
+  shows with an Enable-storage shortcut; the empty state carries the same note
+  before the first secret is typed.
+- **Copy is always reachable** (P1): the per-card action row no longer hides
+  behind hover, and the OTP code itself is now a button — one tap on the code
+  copies it (aria-labeled per entry).
+- **Vietnamese renders in Space Grotesk** (P1): added the Vietnamese and
+  latin-ext variable subsets with `unicode-range`; previously 53 of 59
+  Vietnamese codepoints fell back to the OS font.
+- **Light-theme primary buttons pass WCAG AA** (P1): light `--accent` darkened
+  to `oklch(54% 0.17 42)` (5.28:1 vs 4.46:1), applied to the system-follow
+  block too.
+- **Service worker serves fresh assets online** (P1): same-origin assets are
+  network-first with the cache as offline fallback (the old cache-first
+  handler pinned stale stylesheets/bundles until a CACHE_NAME bump); shell
+  bumped to `otp-vault-cache-v9` and now pre-caches all fonts.
+- **Extension popup leads with codes** (P1): the entries list moved above the
+  Add form and the form starts collapsed (auto-expanded on first run / empty
+  vault) — copying a code no longer needs ~2.7 viewports of scrolling.
+- **Locked vault shows a locked state** (P1): a dedicated locked template
+  replaces the first-import onboarding (whose add buttons were all dead);
+  Add dialog routes to unlock instead of rendering a dead form; search
+  no-match state drops the onboarding guide and offers "Clear search".
+- **`<html lang>` follows the UI language** (P1, WCAG 3.1.1): `setLocale()`
+  keeps `document.documentElement.lang` in sync; extension unlock-throttle
+  expiry is tracked by state instead of matching the English message text
+  (which never matched in Vietnamese); ~24 hardcoded strings now resolve
+  through the catalog (parity re-verified: 499 EN = 499 VI).
+
+### Changed
+
+- `scripts/build.mjs` minifies bundles: `app.bundle.js` 620 KB → 308 KB.
+- Up/Down reorder buttons appear only in Manual order mode; touch targets on
+  coarse pointers grow to 44px (`--ctl-sm` was 36px); the mobile action row
+  wraps instead of orphaning buttons.
+- Global shortcuts (`/`, `n`) no longer fire while a dialog owns focus, `n`
+  opens the Add sheet, and both expose `aria-keyshortcuts`.
+- Install App failure feedback toasts globally instead of writing into the
+  closed settings sheet; the timer widget uses `role="timer"`; `#entries` no
+  longer has `aria-live` (screen readers were re-announcing the whole list
+  every second) — toasts remain the live region.
+- Manifest/meta theme colors unified with the app tokens (`#12100e` dark,
+  `#f6f4f1` light); unicode glyphs (⚙ ◷ ✕ ⠿ x) replaced with inline SVG icons;
+  extension renamed its divergent `--s8` token and accepts the root app's
+  `.btn.primary`/`.btn.ghost` classes.
+
 ## 0.4.0 — 2026-10-28
 
 A migration-and-language wave: imports from Aegis and 2FAS, single-entry QR

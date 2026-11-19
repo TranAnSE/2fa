@@ -83,7 +83,7 @@ test("manual Lock Vault clears the passphrase so re-unlock is required", async (
   // The correct passphrase still unlocks — proving the lock cleared the
   // in-memory passphrase and the vault was not silently left unlocked.
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);
 });
@@ -100,7 +100,7 @@ test("throttles unlock attempts with a visible countdown after three failures", 
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.locator("#unlock-passphrase").fill("wrong wrong wrong");
-    await page.getByRole("button", { name: "Unlock Vault" }).click();
+    await page.locator("#unlock-btn").click();
     await expect(page.locator("#unlock-status")).toContainText("Incorrect passphrase");
   }
 
@@ -117,7 +117,7 @@ test("throttles unlock attempts with a visible countdown after three failures", 
   // Advancing past the backoff re-enables unlock and the passphrase works.
   await page.evaluate(() => window.__advanceClockMs(2000));
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
 });
 
@@ -128,11 +128,11 @@ test("a successful unlock clears the throttle guard", async ({ page }) => {
 
   await page.getByRole("button", { name: "Lock Vault", exact: true }).click();
   await page.locator("#unlock-passphrase").fill("wrong wrong wrong");
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await page.locator("#unlock-passphrase").fill("wrong wrong wrong");
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
 
   // Guard reset: two fresh failures must NOT trigger backoff (a retained
@@ -141,12 +141,12 @@ test("a successful unlock clears the throttle guard", async ({ page }) => {
   await expect(page.locator("#unlock-panel")).toBeVisible();
   for (let attempt = 0; attempt < 2; attempt += 1) {
     await page.locator("#unlock-passphrase").fill("wrong wrong wrong");
-    await page.getByRole("button", { name: "Unlock Vault" }).click();
+    await page.locator("#unlock-btn").click();
     await expect(page.locator("#unlock-status")).toContainText("Incorrect passphrase");
     await expect(page.locator("#unlock-status")).not.toContainText("Locked for");
   }
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
 });
 

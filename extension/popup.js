@@ -136,9 +136,16 @@ let qrExportUri = "";
 
 let entries = [];
 let entryNodes = new Map();
-let collapsed = false;
+// The compose form starts collapsed: codes (the whole point of the popup)
+// sat ~2.7 viewports below it by default (P1 from the UI audit). Users who
+// expand it persist their choice; a fresh install sees codes first, and the
+// empty vault path force-expands below.
+let collapsed = true;
 let settings = { encrypt: false, sortBy: "alpha", theme: "system", locale: "system" };
 let currentPassphrase = "";
+// True while the "too many failed attempts" notice owns the unlock status
+// line; cleared by state instead of re-matching the English message text.
+let unlockThrottleNoticeActive = false;
 let heldDek = null;         // CryptoKey held between unlock and lock (biometric/DEK mode)
 let dekEnvelopeMeta = null; // { salt, kdf, dek } — stable across DEK-mode saves
 let biometricCapable = false;
@@ -177,7 +184,9 @@ initialize();
 async function initialize() {
   const stored = await chrome.storage.local.get([STORAGE_KEY, LEGACY_STORAGE_KEY, ENCRYPTED_KEY, SETTINGS_KEY, UI_KEY]);
   settings = { encrypt: false, sortBy: "alpha", autoLockMinutes: 15, timeDriftCheck: false, ...(stored[SETTINGS_KEY] || {}) };
-  collapsed = Boolean(stored[UI_KEY]?.collapsed);
+  // Respect a stored preference; a fresh install defaults to collapsed so
+  // codes lead the popup (P1 from the UI audit).
+  collapsed = stored[UI_KEY] ? Boolean(stored[UI_KEY].collapsed) : true;
   encryptToggle.checked = settings.encrypt;
   sortSelect.value = settings.sortBy || "alpha";
   const autoLockSelect = document.getElementById("auto-lock-select");
@@ -228,6 +237,12 @@ async function initialize() {
   bindPassphraseStrengthMeters();
   bindAutoLockActivity();
   renderEntries();
+  // An empty vault has no codes to lead with — expose the add form instead
+  // of greeting a first-run user with a collapsed panel.
+  if (entries.length === 0) {
+    collapsed = false;
+    applyUiState();
+  }
   renderCopyHistory();
   renderBackupReminder();
   renderBiometricControls();
@@ -649,7 +664,7 @@ async function offerUndoFromTombstone() {
   status.classList.add("error");
   const undoBtn = document.createElement("button");
   undoBtn.type = "button";
-  undoBtn.className = "ghost-btn";
+  undoBtn.className = "btn ghost";
   undoBtn.textContent = t("ext.undoDelete");
   undoBtn.addEventListener("click", async () => {
     undoBtn.remove();
@@ -907,7 +922,7 @@ function renderCopyHistory() {
   if (copyHistory.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Copied OTPs will appear here.";
+    empty.textContent = t("ext.historyEmpty");
     copyHistoryRoot.appendChild(empty);
     return;
   }
@@ -1401,8 +1416,13 @@ async function tick() {
     unlockBtn.disabled = remainingMs > 0;
     if (remainingMs > 0) {
       setUnlockStatus(`Too many failed attempts — unlock available in ${Math.ceil(remainingMs / 1000)}s`, "error");
-    } else if (unlockStatus.classList.contains("error") && unlockStatus.textContent.startsWith("Too many failed attempts")) {
+      unlockThrottleNoticeActive = true;
+    } else if (unlockThrottleNoticeActive) {
+      // Track throttle expiry by state, not by string-matching an English
+      // message — the old startsWith check never matched once the UI ran
+      // in Vietnamese, so the status line stuck around forever (P1).
       setUnlockStatus("");
+      unlockThrottleNoticeActive = false;
     }
     return;
   }
@@ -1927,7 +1947,10 @@ function bindEvents() {
           heldDek = null;
           dekEnvelopeMeta = null;
           keyHandle = await deriveVaultKeyFromPayload(payload, normalizePassphrase(candidate));
-          entries = resequenceIfUnordered(await decryptVaultEntries(payload, candidate));
+          // Reuse the derived key instead of re-running the 600k PBKDF2
+          // inside decryptVaultEntries — same bytes, half the unlock cost
+          // (matters on slow devices and under CI CPU contention).
+          entries = resequenceIfUnordered(await decryptVaultEntriesWithKey(keyHandle, payload));
         }
         currentPassphrase = normalizePassphrase(candidate);
         // Legacy (pre-600k) envelopes re-encrypt at the current default right

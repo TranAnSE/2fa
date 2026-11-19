@@ -3,8 +3,8 @@
   "short_name": "OTP Vault",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
+  "background_color": "#12100e",
+  "theme_color": "#12100e",
   "description": "Local-first TOTP vault with encrypted storage, QR import, and backups.",
   "icons": [
     {

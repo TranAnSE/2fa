@@ -4,6 +4,8 @@
    System font stack: the vendored webfonts are not packaged here.
    ============================================================ */
 
+@import "../styles/tokens.css"; /* shared tokens, bundled by scripts/build.mjs — also imported by styles.css */
+
 :root {
   --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: Consolas, "Cascadia Mono", "Courier New", monospace;
@@ -14,103 +16,25 @@
   --text-md: 14px;
   --text-code: 22px;
 
-  --s1: 4px;
-  --s2: 8px;
-  --s3: 12px;
-  --s4: 16px;
-  --s8: 32px;
-
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-full: 999px;
+  /* s1–s4, the radius family and motion come from ../styles/tokens.css,
+     imported above and shared with the web app. */
+  --dialog-form-gap: 32px; /* was --s8; renamed: root app --s8 is 48px */
 
   --ctl-sm: 26px;
   --ctl: 32px;
 
-  --fast: 120ms;
-  --dur: 180ms;
-  --ease: cubic-bezier(0.25, 1, 0.5, 1);
-
-  /* Dark palette (default) */
-  --bg: oklch(17.5% 0.006 65);
-  --surface: oklch(21.5% 0.007 65);
-  --surface-raised: oklch(24% 0.008 65);
-  --sunken: oklch(15% 0.006 60);
-  --border: oklch(31% 0.008 65);
-  --border-strong: oklch(40% 0.01 65);
-  --text: oklch(93% 0.006 78);
-  --muted: oklch(74% 0.009 72);
-  --subtle: oklch(63% 0.011 70);
-  --accent: oklch(71% 0.155 45);
-  --accent-hover: oklch(76% 0.14 45);
-  --accent-soft: oklch(28% 0.055 45);
-  --accent-text: oklch(84% 0.09 50);
-  --on-accent: oklch(24% 0.06 45);
-  --success: oklch(78% 0.12 155);
-  --success-text: oklch(80% 0.11 155);
-  --danger: oklch(66% 0.17 25);
-  --danger-soft: oklch(28% 0.05 25);
-  --danger-text: oklch(82% 0.08 25);
-  --warning-text: oklch(84% 0.11 95);
-  --focus-ring: oklch(71% 0.155 45 / 0.6);
-  --scrim: oklch(12% 0.01 65 / 0.68);
+  /* Color palette + color-scheme come from ../styles/tokens.css; the popup
+     adds one popup-only token (card shadow). Light-mode --accent uses the
+     shared AA value (54%, 5.28:1 on cream). */
   --shadow: 0 10px 28px oklch(10% 0.01 65 / 0.5);
-  color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --bg: oklch(96.8% 0.005 80);
-  --surface: oklch(99.2% 0.003 80);
-  --surface-raised: oklch(99.6% 0.002 80);
-  --sunken: oklch(94.5% 0.007 80);
-  --border: oklch(88% 0.008 80);
-  --border-strong: oklch(78% 0.012 80);
-  --text: oklch(27% 0.012 70);
-  --muted: oklch(45% 0.013 72);
-  --subtle: oklch(51% 0.013 72);
-  --accent: oklch(58% 0.165 42);
-  --accent-hover: oklch(53% 0.16 42);
-  --accent-soft: oklch(94% 0.03 50);
-  --accent-text: oklch(52% 0.14 45);
-  --on-accent: oklch(99% 0.005 80);
-  --success: oklch(56% 0.12 155);
-  --success-text: oklch(46% 0.11 155);
-  --danger: oklch(54% 0.17 25);
-  --danger-soft: oklch(95% 0.02 25);
-  --danger-text: oklch(46% 0.15 25);
-  --warning-text: oklch(44% 0.11 85);
-  --focus-ring: oklch(58% 0.165 42 / 0.55);
-  --scrim: oklch(28% 0.02 70 / 0.45);
   --shadow: 0 10px 28px oklch(30% 0.02 70 / 0.14);
-  color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: oklch(96.8% 0.005 80);
-    --surface: oklch(99.2% 0.003 80);
-    --surface-raised: oklch(99.6% 0.002 80);
-    --sunken: oklch(94.5% 0.007 80);
-    --border: oklch(88% 0.008 80);
-    --border-strong: oklch(78% 0.012 80);
-    --text: oklch(27% 0.012 70);
-    --muted: oklch(45% 0.013 72);
-    --subtle: oklch(51% 0.013 72);
-    --accent: oklch(58% 0.165 42);
-    --accent-hover: oklch(53% 0.16 42);
-    --accent-soft: oklch(94% 0.03 50);
-    --accent-text: oklch(52% 0.14 45);
-    --on-accent: oklch(99% 0.005 80);
-    --success: oklch(56% 0.12 155);
-    --success-text: oklch(46% 0.11 155);
-    --danger: oklch(54% 0.17 25);
-    --danger-soft: oklch(95% 0.02 25);
-    --danger-text: oklch(46% 0.15 25);
-    --warning-text: oklch(44% 0.11 85);
-    --focus-ring: oklch(58% 0.165 42 / 0.55);
-    --scrim: oklch(28% 0.02 70 / 0.45);
     --shadow: 0 10px 28px oklch(30% 0.02 70 / 0.14);
-    color-scheme: light;
   }
 }
 
@@ -334,8 +258,8 @@ form select:first-child {
   display: none;
 }
 
-.primary-btn,
-.ghost-btn {
+.btn.primary,
+.btn.ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -349,7 +273,7 @@ form select:first-child {
   transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease);
 }
 
-.primary-btn {
+.btn.primary {
   width: 100%;
   margin-top: var(--s2);
   background: var(--accent);
@@ -357,17 +281,17 @@ form select:first-child {
   font-weight: 600;
 }
 
-.primary-btn:hover {
+.btn.primary:hover {
   background: var(--accent-hover);
 }
 
-.ghost-btn {
+.btn.ghost {
   background: transparent;
   color: var(--text);
   border-color: var(--border);
 }
 
-.ghost-btn:hover {
+.btn.ghost:hover {
   background: var(--sunken);
   border-color: var(--border-strong);
 }
@@ -402,7 +326,7 @@ form select:first-child {
   flex: none;
 }
 
-.toolbar .ghost-btn {
+.toolbar .btn.ghost {
   min-height: var(--ctl-sm);
   padding: 0 var(--s2);
   font-size: var(--text-sm);
@@ -456,7 +380,7 @@ label span {
   flex-wrap: wrap;
 }
 
-.security-actions .ghost-btn {
+.security-actions .btn.ghost {
   margin-top: 0;
 }
 
@@ -518,7 +442,7 @@ label span {
   font-size: var(--text-sm);
 }
 
-.drift-banner .ghost-btn {
+.drift-banner .btn.ghost {
   min-height: var(--ctl-sm);
   padding: 0 var(--s2);
   font-size: var(--text-xs);
@@ -603,6 +527,10 @@ body.dragging {
 
 .identity {
   min-width: 0;
+  /* Fill the space between avatar and actions: with space-between + a hidden
+     drag handle the name block floated mid-card and jumped when sort mode
+     toggled the handle (P2 from the UI audit). */
+  flex: 1;
   display: grid;
   gap: 1px;
 }
@@ -648,7 +576,7 @@ body.dragging {
   justify-content: space-between;
 }
 
-.entry-code-row .ghost-btn {
+.entry-code-row .btn.ghost {
   min-height: var(--ctl-sm);
   padding: 0 var(--s2);
   font-size: var(--text-xs);
@@ -805,7 +733,7 @@ dialog.hidden-dialog[open] {
 
 dialog.hidden-dialog[open] > form {
   width: min(360px, calc(100vw - var(--s4)));
-  margin: var(--s8) auto;
+  margin: var(--dialog-form-gap) auto;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface-raised);

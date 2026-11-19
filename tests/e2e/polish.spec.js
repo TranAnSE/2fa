@@ -147,7 +147,9 @@ test("copying an entry announces and records the code", async ({ page, context }
   await loadApp(page);
   await addEntry(page, "Copy:user@example.com", PRIMARY_SECRET);
 
-  await page.locator(".entry").first().getByRole("button", { name: "Copy" }).click();
+  // The OTP code itself is now a copy button too (audit P1), so the
+  // dedicated Copy button needs an exact match.
+  await page.locator(".entry").first().getByRole("button", { name: "Copy", exact: true }).click();
   await expect(page.locator(".entry").first().getByRole("button", { name: "Copied" })).toBeVisible();
   await expect(page.locator("#copy-history")).toContainText("Copy");
 });
@@ -171,7 +173,7 @@ test("axe reports no critical violations on locked, unlocked, and settings views
   expect(locked.violations.filter((v) => v.impact === "critical")).toEqual([]);
 
   await page.locator("#unlock-passphrase").fill("correct horse battery");
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   const unlocked = await new AxeBuilder({ page }).analyze();
   expect(unlocked.violations.filter((v) => v.impact === "critical")).toEqual([]);

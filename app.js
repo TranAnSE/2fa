@@ -872,6 +872,10 @@ function renderBackupReminder() {
 }
 function updateDataSafetyBanners() {
   renderBackupReminder();
+  // Session mode silently discards everything on reload. Once the vault
+  // holds entries the risk is real, so surface it until persistence is on
+  // (P0 from the UI audit: data loss with no warning at all).
+  setBannerVisible("session-mode-banner", !settings.persist && entries.length > 0);
 }
 
 function parseHttpDateHeader(value) {
@@ -1053,6 +1057,14 @@ function addCopyHistory(label, code) {
 function openAddDialog(tab) {
   const dialog = document.getElementById("add-dialog");
   if (!dialog) return;
+  // A locked vault must not present add-entry affordances (it rendered a
+  // dead form with a disabled secret); route the user to unlock instead.
+  const locked = !unlockPanel.classList.contains("hidden") && settings.encrypt;
+  if (locked) {
+    unlockPanel.scrollIntoView({ block: "nearest" });
+    unlockPassphraseInput?.focus();
+    return;
+  }
   setImportStatus("");
   if (!dialog.open) dialog.showModal();
   if (tab) {
@@ -1060,20 +1072,32 @@ function openAddDialog(tab) {
     if (radio) radio.checked = true;
   }
 }
-function showEmptyState(message, heading = t("empty.heading")) {
-  entriesRoot.innerHTML = "";
-  entriesRoot.innerHTML = `
-    <section class="workspace-empty">
-      <div class="workspace-empty-copy">
-        <p class="empty-kicker">${t("empty.kicker")}</p>
-        <h3>${heading}</h3>
-        <p>${message}</p>
-        <div class="workspace-empty-actions">
-          <button type="button" class="btn primary" data-empty-action="focus-secret">${t("empty.addFirst")}</button>
-          <button type="button" class="btn ghost" data-empty-action="focus-uri">${t("empty.pasteUri")}</button>
-          <button type="button" class="btn ghost" data-empty-action="start-camera">${t("empty.scanQr")}</button>
+// Empty-state templates are per-cause now: the locked vault used to inherit
+// the first-import onboarding (add buttons, 3-step guide) even though every
+// affordance on it was dead until unlock (P1 from the UI audit).
+function showEmptyState(message, heading = t("empty.heading"), options = {}) {
+  const { variant = "empty" } = options;
+  if (variant === "locked") {
+    entriesRoot.innerHTML = `
+      <section class="workspace-empty workspace-locked">
+        <div class="workspace-empty-copy">
+          <p class="empty-kicker">${t("empty.lockedKicker")}</p>
+          <h3>${t("empty.headingLocked")}</h3>
+          <p>${t("empty.locked")}</p>
+          <div class="workspace-empty-actions">
+            <button type="button" class="btn primary" data-empty-action="focus-unlock">${t("unlock.button")}</button>
+          </div>
         </div>
-      </div>
+      </section>`;
+    entriesRoot.querySelectorAll("[data-empty-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        unlockPanel.scrollIntoView({ block: "nearest" });
+        unlockPassphraseInput?.focus();
+      });
+    });
+    return;
+  }
+  const guide = variant === "noMatch" ? "" : `
       <div class="workspace-empty-guide">
         <div class="preview-item">
           <strong>${t("empty.step1Title")}</strong>
@@ -1087,7 +1111,31 @@ function showEmptyState(message, heading = t("empty.heading")) {
           <strong>${t("empty.step3Title")}</strong>
           <p>${t("empty.step3Text")}</p>
         </div>
+      </div>`;
+  // Session mode loses everything on reload; say so while the vault is empty
+  // so the risk is understood before the first secret is typed in.
+  const sessionNote = !settings.persist && variant === "empty"
+    ? `<p class="empty-session-note">${t("empty.sessionNote")}</p>`
+    : "";
+  const actions = variant === "noMatch" ? `
+        <div class="workspace-empty-actions">
+          <button type="button" class="btn ghost" data-empty-action="clear-search">${t("empty.clearSearch")}</button>
+        </div>` : `
+        <div class="workspace-empty-actions">
+          <button type="button" class="btn primary" data-empty-action="focus-secret">${t("empty.addFirst")}</button>
+          <button type="button" class="btn ghost" data-empty-action="focus-uri">${t("empty.pasteUri")}</button>
+          <button type="button" class="btn ghost" data-empty-action="start-camera">${t("empty.scanQr")}</button>
+        </div>`;
+  entriesRoot.innerHTML = `
+    <section class="workspace-empty">
+      <div class="workspace-empty-copy">
+        <p class="empty-kicker">${t("empty.kicker")}</p>
+        <h3>${heading}</h3>
+        <p>${message}</p>
+        ${sessionNote}
+        ${actions}
       </div>
+      ${guide}
     </section>`;
   entriesRoot.querySelectorAll("[data-empty-action]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1104,6 +1152,11 @@ function showEmptyState(message, heading = t("empty.heading")) {
         openAddDialog("camera");
         startCameraBtn.click();
       }
+      if (action === "clear-search") {
+        searchInput.value = "";
+        renderEntries();
+        searchInput.focus();
+      }
     });
   });
 }
@@ -1114,6 +1167,14 @@ function createEntryNode(entry) {
   const account = node.querySelector(".entry-account");
   const meta = node.querySelector(".entry-meta");
   const copyBtn = node.querySelector(".copy");
+  const codeBtn = node.querySelector(".entry-code");
+  if (codeBtn) {
+    // The code display doubles as the copy control; label it per entry so
+    // screen readers get "copy code — GitHub:user@…" instead of a bare dash.
+    codeBtn.setAttribute("aria-label", `${t("entries.copyCodeHint")} — ${entry.label}`);
+    // Same handler as the Copy button: one tap on the number itself copies.
+    codeBtn.onclick = () => copyBtn.click();
+  }
   const editBtn = node.querySelector(".edit");
   const moveUpBtn = node.querySelector(".move-up");
   const moveDownBtn = node.querySelector(".move-down");
@@ -1129,6 +1190,10 @@ function createEntryNode(entry) {
       startEntryDrag(event, entry, node);
     });
   }
+  const moveUpInit = node.querySelector(".move-up");
+  const moveDownInit = node.querySelector(".move-down");
+  if (moveUpInit) moveUpInit.classList.toggle("hidden", settings.sortBy !== "custom");
+  if (moveDownInit) moveDownInit.classList.toggle("hidden", settings.sortBy !== "custom");
   avatar.textContent = getIssuerInitials(entry.label);
   refreshEntryMetadata(node, entry);
   renderTagRow(node, entry);
@@ -1258,12 +1323,15 @@ function renderEntries() {
   setOnboardingVisibility();
   renderWorkspaceSummary();
   renderConnectionState();
+  // Tablet band renders two columns; computeDropIndex (lib/otp.js) is
+  // vertical-only, so manual (drag-reorder) mode stays one column.
+  entriesRoot.classList.toggle("entries-manual", settings.sortBy === "custom");
   const isLocked = !unlockPanel.classList.contains("hidden") && settings.encrypt;
   if (workspaceHeading) {
     workspaceHeading.textContent = isLocked ? t("entries.headingLocked") : t("entries.headingCurrent");
   }
   if (isLocked) {
-    showEmptyState(t("empty.locked"));
+    showEmptyState(t("empty.locked"), t("empty.heading"), { variant: "locked" });
     return;
   }
   if (entries.length === 0) {
@@ -1273,7 +1341,7 @@ function renderEntries() {
   }
   const groups = getEntryGroups();
   if (groups.length === 0 || groups.every(([, groupEntries]) => groupEntries.length === 0)) {
-    showEmptyState(t("empty.noMatch"), t("empty.headingNoMatch"));
+    showEmptyState(t("empty.noMatch"), t("empty.headingNoMatch"), { variant: "noMatch" });
     return;
   }
   entriesRoot.innerHTML = "";
@@ -1297,10 +1365,14 @@ function renderEntries() {
         entryNodes.set(entry.id, node);
       }
       refreshEntryMetadata(node, entry);
-      // Nodes are reused across renders — keep handle visibility in sync
-      // with the current sort mode.
+      // Nodes are reused across renders — keep handle and reorder-button
+      // visibility in sync with the current sort mode.
       const dragHandle = node.querySelector(".drag-handle");
       if (dragHandle) dragHandle.classList.toggle("hidden", settings.sortBy !== "custom");
+      const moveUp = node.querySelector(".move-up");
+      const moveDown = node.querySelector(".move-down");
+      if (moveUp) moveUp.classList.toggle("hidden", settings.sortBy !== "custom");
+      if (moveDown) moveDown.classList.toggle("hidden", settings.sortBy !== "custom");
       node.classList.toggle("pinned", entry.pinned);
       node.querySelector(".pin").textContent = entry.pinned ? t("entries.unpin") : t("entries.pin");
       const selectBox = node.querySelector(".entry-select");
@@ -1322,6 +1394,7 @@ async function updateEntryNode(entry, now) {
   const bar = node.querySelector(".entry-bar");
   const ring = node.querySelector(".ring-progress");
   const copyBtn = node.querySelector(".copy");
+  const codeBtn = node.querySelector(".entry-code");
   try {
     let otp;
     if (entry.type === "hotp") {
@@ -1344,11 +1417,13 @@ async function updateEntryNode(entry, now) {
     code.textContent = formatCode(otp);
     node.dataset.otp = otp;
     copyBtn.disabled = false;
+    if (codeBtn) codeBtn.disabled = false;
   } catch (error) {
     reportError("OTP generation failed", error);
     code.textContent = t("entries.invalidSecret");
     node.dataset.otp = "";
     copyBtn.disabled = true;
+    if (codeBtn) codeBtn.disabled = true;
   }
 }
 async function updateAllEntries(now) {
@@ -1545,7 +1620,7 @@ async function replaceEntries(nextEntries) {
 function buildManualEntry(input) {
   const entry = normalizeEntry({ ...input, pinned: false, order: nextOrderValueFrom(entries) });
   if (hasDuplicateEntry(entries, entry)) {
-    throw new Error("This account already exists");
+    throw new Error(t("vault.accountExists"));
   }
   return entry;
 }
@@ -1601,7 +1676,7 @@ function collectMigrationPayloads(rawText) {
     try {
       payloads.push(parseMigrationUri(uri).payloadBytes);
     } catch (error) {
-      warnings.push(toUserMessage(error, "A migration QR could not be read"));
+      warnings.push(toUserMessage(error, t("import.migrationQrUnreadable")));
     }
   }
   return { payloads, warnings };
@@ -1631,7 +1706,7 @@ function stageMigrationPayloads(payloadByteArrays, sourceLabel) {
       candidates.push(entry);
     } catch (error) {
       invalid += 1;
-      warnings.push(toUserMessage(error, "An entry could not be mapped"));
+      warnings.push(toUserMessage(error, t("import.mapFailed")));
     }
   }
 
@@ -1647,7 +1722,7 @@ function finishMigrationCameraScan() {
     stageMigrationPayloads(state.payloads, "Camera");
   } catch (error) {
     reportError("Camera migration import failed", error);
-    setImportStatus(toUserMessage(error, "Could not import the Google Authenticator scan"), "error");
+    setImportStatus(toUserMessage(error, t("common.gaScanImportFailed")), "error");
   }
 }
 
@@ -1680,7 +1755,7 @@ function handleMigrationScanFrame(uri) {
     }
   } catch (error) {
     reportError("Migration scan failed", error);
-    setImportStatus(toUserMessage(error, "Could not read the Google Authenticator QR"), "error");
+    setImportStatus(toUserMessage(error, t("common.gaQrReadFailed")), "error");
   }
 }
 
@@ -2241,7 +2316,7 @@ async function importBackupFile(file, backup = null, rawBackup = null) {
       try {
         return await parseBackupFile(parsed);
       } catch (error) {
-        throw new Error(toUserMessage(error, "Backup file is invalid"));
+        throw new Error(toUserMessage(error, t("vault.backupInvalid")));
       }
     })();
     if (resolvedBackup.integrity === "legacy") {
@@ -2278,7 +2353,7 @@ async function stageBackupImport(file) {
   try {
     backup = await parseBackupFile(rawBackup);
   } catch (error) {
-    throw new Error(toUserMessage(error, "Backup file is invalid"));
+    throw new Error(toUserMessage(error, t("vault.backupInvalid")));
   }
   backupImportState = { file, backup, rawBackup };
   if (backupImportMode) backupImportMode.value = entries.length > 0 ? "merge" : "replace";
@@ -2404,7 +2479,7 @@ async function startCameraScan() {
       stopCameraScan();
     } catch (error) {
       reportError("Camera import failed", error);
-      setImportStatus(toUserMessage(error, "Could not import camera scan"), "error");
+      setImportStatus(toUserMessage(error, t("common.cameraScanImportFailed")), "error");
       cameraDetection = { uri: "", hits: 0 };
     }
   }, 900);
@@ -2438,6 +2513,9 @@ function bindEvents() {
   bindAutoLockActivity();
   document.getElementById("drift-dismiss")?.addEventListener("click", hideDriftBanner);
   document.getElementById("backup-reminder-dismiss")?.addEventListener("click", () => setBannerVisible("backup-reminder-banner", false));
+  // "Enable storage" jumps straight to the settings sheet where the
+  // persistence toggle lives (session banner CTA).
+  document.getElementById("session-mode-enable")?.addEventListener("click", () => settingsDialog?.showModal());
   document.getElementById("check-drift-btn")?.addEventListener("click", async () => {
     if (!settings.timeDriftCheck) {
       setSettingsStatus(t("settings.driftCheckFirst"), "warning");
@@ -2447,14 +2525,41 @@ function bindEvents() {
     setSettingsStatus(t("settings.driftCheckDone"), "success");
   });
   document.addEventListener("keydown", (event) => {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+    // A dialog owning focus means its own keys matter; global shortcuts
+    // firing underneath it jumped focus out of open dialogs ("n" broke the
+    // settings sheet this way — P2 from the UI audit).
+    if (event.target.closest?.("dialog[open]")) return;
+    // Never steal browser/system shortcuts that carry a modifier.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === "/") {
       event.preventDefault();
       searchInput.focus();
     }
     if (event.key.toLowerCase() === "n") {
       event.preventDefault();
-      secretInput.focus();
+      // Open the add sheet: focusing the hidden secret input alone left
+      // users staring at a closed dialog.
+      openAddDialog("manual");
+    }
+    // Number keys copy the Nth visible entry (1-based, screen order) — the
+    // most common action in a 2FA vault should not need a mouse. Flatten
+    // getEntryGroups() so grouped mode keeps the on-screen order. Reuse the
+    // row's own Copy button so every cue (history entry, "Copied" feedback,
+    // HOTP counter advance) behaves identically; key repeat is refused
+    // because a held key would advance the persisted HOTP counter.
+    if (/^[1-9]$/.test(event.key)) {
+      if (event.repeat) return;
+      const visible = getEntryGroups().flatMap(([, groupEntries]) => groupEntries);
+      const entry = visible[Number(event.key) - 1];
+      const node = entry ? entryNodes.get(entry.id) : null;
+      node?.querySelector(".copy")?.click();
     }
   });
   encryptToggle.addEventListener("change", () => {
@@ -2548,7 +2653,7 @@ function bindEvents() {
       await importFromQrBlob(file, "QR file");
     } catch (error) {
       reportError("QR file import failed", error);
-      setImportStatus(toUserMessage(error, "Failed to import QR file"), "error");
+      setImportStatus(toUserMessage(error, t("import.fileReadFailed")), "error");
     } finally {
       qrFileInput.value = "";
       if (fileNameLabel) fileNameLabel.textContent = t("add.qrFileChoose");
@@ -2604,7 +2709,7 @@ function bindEvents() {
       setImportStatus(t("import.cameraReady"), "");
     } catch (error) {
       reportError("Camera start failed", error);
-      setImportStatus(toUserMessage(error, "Could not start camera"), "error");
+      setImportStatus(toUserMessage(error, t("common.cameraStartFailed")), "error");
     }
   });
   stopCameraBtn.addEventListener("click", () => {
@@ -2661,7 +2766,7 @@ function bindEvents() {
       setImportStatus(t("vault.tagsApplied"), "success");
     } catch (error) {
       reportError("Bulk tag update failed", error);
-      setImportStatus(toUserMessage(error, "Could not update selected entries"), "error");
+      setImportStatus(toUserMessage(error, t("common.bulkUpdateFailed")), "error");
     }
   });
   bulkRemoveBtn?.addEventListener("click", async () => {
@@ -2692,7 +2797,7 @@ function bindEvents() {
       await handleSaveSettings();
     } catch (error) {
       reportError("Save settings failed", error);
-      setSettingsStatus(toUserMessage(error, "Could not save settings"), "error");
+      setSettingsStatus(toUserMessage(error, t("common.saveFailed")), "error");
     }
   });
   exportBackupBtn.addEventListener("click", async () => {
@@ -2725,7 +2830,7 @@ function bindEvents() {
       changePassphraseDialog.close("accept");
       setSettingsStatus(t("settings.statusPassphraseUpdated"), "success");
     } catch (error) {
-      setChangePassphraseStatus(toUserMessage(error, "Could not update passphrase"), "error");
+      setChangePassphraseStatus(toUserMessage(error, t("common.passphraseUpdateFailed")), "error");
     }
   });
   changePassphraseDialog?.addEventListener("close", () => {
@@ -2835,7 +2940,9 @@ function bindEvents() {
   });
   installAppBtn.addEventListener("click", async () => {
     if (!deferredInstallPrompt) {
-      setSettingsStatus(t("settings.statusInstallUnavailable"), "error");
+      // The settings status line lives inside a dialog the user has not
+      // opened here — toast globally so the button never dead-ends (P2).
+      showToast(t("toast.vaultTitle"), t("settings.statusInstallUnavailable"), "error");
       return;
     }
     await deferredInstallPrompt.prompt();
@@ -2846,7 +2953,7 @@ function bindEvents() {
       markPersistWarningSeen();
       handleSaveSettings().catch((error) => {
         reportError("Save settings after privacy dialog failed", error);
-        setSettingsStatus(toUserMessage(error, "Could not save settings"), "error");
+        setSettingsStatus(toUserMessage(error, t("common.saveFailed")), "error");
       });
     } else {
       persistToggle.checked = settings.persist;

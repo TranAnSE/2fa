@@ -174,7 +174,7 @@ test("reconciles an orphaned biometric record back to passphrase-only", async ({
   expect(record).toBeNull();
 
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
 });
 
@@ -305,7 +305,7 @@ test("passphrase change in biometric mode re-wraps the DEK without breaking biom
 
   // Old passphrase must now fail; the record survives (KEK wrap independent).
   await page.locator("#unlock-passphrase").fill(PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toContainText("Incorrect passphrase");
 
   const record = await page.evaluate((key) => localStorage.getItem(key), BIOMETRIC_RECORD_KEY);
@@ -320,7 +320,7 @@ test("passphrase change in biometric mode re-wraps the DEK without breaking biom
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Lock Vault", exact: true }).click();
   await page.locator("#unlock-passphrase").fill(NEW_PASSPHRASE);
-  await page.getByRole("button", { name: "Unlock Vault" }).click();
+  await page.locator("#unlock-btn").click();
   await expect(page.locator("#unlock-status")).toHaveText("Vault unlocked");
   await expect(page.locator(".entry")).toHaveCount(1);
 });
