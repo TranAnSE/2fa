@@ -884,17 +884,6 @@ select {
   gap: var(--s1);
 }
 
-.entry:hover .entry-actions,
-.entry:focus-within .entry-actions {
-  opacity: 1;
-}
-
-@media (pointer: coarse) {
-  .entry-actions {
-    opacity: 1;
-  }
-}
-
 .entry-actions .btn {
   min-height: var(--ctl-sm);
   padding: 0 var(--s2);
@@ -1622,7 +1611,6 @@ body.dragging-entry {
   }
 
   .entry-actions {
-    opacity: 1;
     flex-basis: 100%;
     flex-wrap: wrap;
     padding-top: var(--s2);

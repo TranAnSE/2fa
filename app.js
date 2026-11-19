@@ -1323,8 +1323,8 @@ function renderEntries() {
   setOnboardingVisibility();
   renderWorkspaceSummary();
   renderConnectionState();
-  // Tablet band renders two columns; the vertical-only drop-index math in
-  // lib/otp.js is single-column, so manual (drag-reorder) mode stays 1-col.
+  // Tablet band renders two columns; computeDropIndex (lib/otp.js) is
+  // vertical-only, so manual (drag-reorder) mode stays one column.
   entriesRoot.classList.toggle("entries-manual", settings.sortBy === "custom");
   const isLocked = !unlockPanel.classList.contains("hidden") && settings.encrypt;
   if (workspaceHeading) {
@@ -2544,18 +2544,16 @@ function bindEvents() {
     }
     if (event.key.toLowerCase() === "n") {
       event.preventDefault();
-      // "n" opens the add sheet now; focusing the hidden secret input alone
-      // left users staring at a closed dialog.
+      // Open the add sheet: focusing the hidden secret input alone left
+      // users staring at a closed dialog.
       openAddDialog("manual");
     }
-    // Number keys copy the Nth visible entry's code (1-based, screen order —
-    // group mode renders groups in sequence, so the flat list must follow
-    // the same grouping to keep the index honest):
-    // the single most common action in a 2FA vault should not need a mouse.
-    // Reuse the row's own Copy button so every cue (history entry, "Copied"
-    // feedback, HOTP counter advance) behaves identically. Held keys repeat
-    // the click, and for HOTP entries each copy advances a persisted
-    // counter — so repeats are refused.
+    // Number keys copy the Nth visible entry (1-based, screen order) — the
+    // most common action in a 2FA vault should not need a mouse. Flatten
+    // getEntryGroups() so grouped mode keeps the on-screen order. Reuse the
+    // row's own Copy button so every cue (history entry, "Copied" feedback,
+    // HOTP counter advance) behaves identically; key repeat is refused
+    // because a held key would advance the persisted HOTP counter.
     if (/^[1-9]$/.test(event.key)) {
       if (event.repeat) return;
       const visible = getEntryGroups().flatMap(([, groupEntries]) => groupEntries);

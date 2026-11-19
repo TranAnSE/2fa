@@ -24,8 +24,8 @@
   --ctl: 32px;
 
   /* Color palette + color-scheme come from ../styles/tokens.css; the popup
-     adds one popup-only token (card shadow). Light-mode --accent now uses
-     the shared AA value (54%, 5.28:1) instead of the old 58% (4.44:1). */
+     adds one popup-only token (card shadow). Light-mode --accent uses the
+     shared AA value (54%, 5.28:1 on cream). */
   --shadow: 0 10px 28px oklch(10% 0.01 65 / 0.5);
 }
 
