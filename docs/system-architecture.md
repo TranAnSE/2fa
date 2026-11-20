@@ -1,6 +1,6 @@
 # System Architecture
 
-Last updated: 2026-10-08
+Last updated: 2026-11-20
 
 ## Three-Tier Architecture
 
@@ -204,7 +204,8 @@ sequenceDiagram
     UI->>Vault: Create backup
     Vault->>Vault: Generate backup metadata
     Vault->>Vault: Add SHA-256 checksum
-    Vault->>Vault: Serialize as JSON (v2 format)
+    Vault->>Vault: Add keyed HMAC mac (encrypted exports)
+    Vault->>Vault: Serialize as JSON (v3 format)
     Vault->>UI: Return backup blob
     UI->>File: Trigger download (.json backup)
     File->>UI: Download complete
@@ -241,8 +242,9 @@ sequenceDiagram
 
 ### Service Worker Registration
 See `sw.js` for the owning implementation (`CACHE_NAME`,
-`APP_SHELL`). The cached app shell is the offline entry point; navigation
-requests fall back to the cached `index.html`.
+`APP_SHELL`). Same-origin GET requests are served network-first with the cache
+as the offline fallback; navigation requests fall back to the cached
+`index.html`, making the precached app shell the offline entry point.
 
 ### PWA Installation Flow
 ```mermaid
@@ -282,10 +284,10 @@ sequenceDiagram
 
 ## Backup Format Versioning
 
-### Version 2 Format (Current)
+### Version 3 Format (Current)
 ```json
 {
-  "version": 2,
+  "version": 3,
   "encrypted": false,
   "createdAt": "2026-06-27T10:30:00.000Z",
   "itemCount": 1,
@@ -309,7 +311,9 @@ sequenceDiagram
 ```
 
 Encrypted backups keep the same envelope with `"encrypted": true`,
-`"itemCount": 0`, and `payload: { "schemaVersion": 1, "vault": { salt, iv, data } }`.
+`"itemCount": 0`, and `payload: { "schemaVersion": 1, "vault": { salt, iv, data } }`,
+plus a keyed HMAC-SHA256 `mac` verified by `verifyBackupMac` before decryption
+(authenticity, not just integrity). Plain-text backups carry the checksum only.
 See `buildBackupEnvelope` in `lib/vault.js` for the owning shape.
 
 ### Version 1 Migration
@@ -321,9 +325,10 @@ The system automatically detects and migrates v1 backups (see `migrateBackup` in
 
 ### Checksum Validation
 See `parseBackupFile` in `lib/vault.js` for the owning logic:
-- v2 backups must carry `checksum`; it is compared against `SHA-256(JSON.stringify(payload))`
+- v2+ backups must carry `checksum`; it is compared against `SHA-256(JSON.stringify(payload))`
+- v3 encrypted backups additionally carry `mac`, a keyed HMAC-SHA256 verified via `verifyBackupMac` once the passphrase is available (authenticity, not just integrity)
 - Purpose: detect tampering and corruption
-- Validation: mandatory before import for v2 backups
+- Validation: mandatory before import for v2+ backups
 
 ## Entry Render Loop
 
@@ -366,7 +371,7 @@ personal_otp_vault_entries_v2 (legacy, read-only fallback)
 
 personal_otp_vault_encrypted_v1 (current; gains `kdf.mode: "dek-v1"` + `dek` block in biometric mode)
 
-personal_otp_vault_settings_v3 (current; now also carries autoLockMinutes, timeDriftCheck, lastBackupAt/Hast, theme)
+personal_otp_vault_settings_v3 (current; now also carries autoLockMinutes, timeDriftCheck, lastBackupAt/Hast, theme, locale)
 
 personal_otp_vault_biometric_v1 (biometric record: credentialId, prfSalt, wrappedDek, wrappedIv — non-secrets only)
 personal_otp_vault_undo_tombstone_v1 (10-minute undo tombstone; encrypted when the vault is)
@@ -444,7 +449,7 @@ graph TD
 ## Performance Considerations
 
 ### Caching Strategy
-- **App shell**: Cache-first for instant loading
+- **App shell**: Network-first with the cache as offline fallback (`sw.js`); navigation falls back to the cached `index.html`
 - **TOTP generation**: Computed on-demand, not cached
 - **Entry display**: Direct DOM updates in `app.js`
 - **Search indexing**: Pre-computed for fast filtering

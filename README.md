@@ -16,21 +16,22 @@ Personal OTP Vault is a local-first TOTP/HOTP authenticator that runs as both a 
 
 - Local-first TOTP and HOTP generation with Web Crypto (SHA-1/256/512, 6-8 digits, 15-120s periods)
 - Strict `otpauth://` parsing to reduce false positives
-- Manual entry, clipboard import, QR import, URL import, camera scan, and Google Authenticator migration-QR import with preview
+- Manual entry, clipboard import, QR import, URL import, camera scan, Google Authenticator migration-QR import with preview, and Aegis/2FAS backup import through the same preview
 - Optional encrypted storage using PBKDF2 (600k iterations) + AES-GCM, with automatic legacy re-encryption on unlock
 - Optional biometric unlock via WebAuthn PRF (two-envelope DEK design; the passphrase always remains the recovery path)
 - Auto-lock on idle, unlock throttling with exponential backoff, and undo-delete with a 10-minute tombstone
 - Backup export/import with versioned checksum verification, plus a 30-day backup reminder and server time-drift check
+- Single-entry QR export of the `otpauth://` URI (copy URI or download PNG) in both frontends
 - Grouping, sorting, tags, bulk actions, copy history, pointer drag & drop reorder, and per-entry countdown rings
-- Dark mode with a System/Light/Dark toggle, vendored fonts, and no third-party runtime origins
+- Dark mode with a System/Light/Dark toggle, English/Vietnamese UI language, vendored fonts, and no third-party runtime origins
 - PWA support and a Chrome extension popup
 - Unit tests, frontend e2e tests, extension e2e tests, accessibility scan, and CI
 
 ## Tech
 
 - Vanilla HTML/CSS/JS with no build frameworks
-- Shared domain logic in `lib/`: `otp.js` (TOTP/HOTP engine), `vault.js` (KDF envelope + DEK mode), `migration.js` (Google Authenticator otpauth-migration), `biometric.js` (WebAuthn PRF), `i18n.js` (English catalog)
-- `jsqr` is the sole runtime-bundled dependency (installed via npm and bundled by esbuild — no CDN or third-party origin)
+- Shared domain logic in `lib/`: `otp.js` (TOTP/HOTP engine), `vault.js` (KDF envelope + DEK mode), `migration.js` (Google Authenticator otpauth-migration), `importers.js` (Aegis/2FAS decoders), `biometric.js` (WebAuthn PRF), `i18n.js` (complete English + Vietnamese catalogs)
+- `jsqr` (QR decoding) and `qrcode` (QR export) are the only runtime-bundled dependencies (installed via npm and bundled by esbuild — no CDN or third-party origin)
 - Vendored woff2 fonts in `fonts/` keep the app shell fully self-hosted
 - `esbuild` for bundling (targets Chrome 114+, Safari 16+, Firefox 115+)
 - `Vitest` for unit tests (lib/ modules only)
@@ -59,9 +60,12 @@ npm run build
 npm run test:unit
 npm run test:e2e
 npm test
+npm run qa:ui
 ```
 
 `npm run build:icons` regenerates the app and extension PNG icon assets from `icon.svg`.
+
+`npm run qa:ui` runs the UI quality gate: axe-core accessibility scans across mobile/tablet/desktop widths plus a responsive screenshot sweep into `.qa/ui-sweep/`. It is wired into CI after the test job.
 
 ## Extension
 
@@ -119,6 +123,6 @@ Suggested flow:
 - This repo keeps some local-only workflow files ignored from Git on purpose.
 - The app is designed for trusted personal devices. Encrypted storage is strongly recommended when persistence is enabled.
 - Version compatibility: vaults re-encrypted after 0.1.2 (600k PBKDF2) cannot be read by older app versions; HOTP entries in new backups degrade to TOTP in pre-0.1.3 versions; only a LIVE biometric-mode vault requires 0.1.5+ code to unlock — backups export in the standard passphrase-encrypted envelope and restore on any version.
-- The backup checksum is integrity-only (unkeyed), not authenticity: anyone with the file can recompute it. Protect backup files like passwords.
+- Encrypted backups (format v3) carry a keyed HMAC-SHA256 mac verified before decryption; the SHA-256 checksum every backup carries is integrity-only (unkeyed) — anyone holding a plain-text backup file can recompute it. Protect backup files like passwords.
 - Framing protection (clickjacking) is a hosting concern: a meta CSP cannot deliver `frame-ancestors`, so serve the PWA with `X-Frame-Options: DENY` or a `CSP: frame-ancestors 'none'` header. The app's meta CSP intentionally allows `connect-src 'self' https:` so the QR-image-URL import can fetch user-supplied hosts; scripts and images stay locked to `'self'`.
 - Duplicate detection matches entries by secret, digit count, and period — the label is not part of the match. A duplicate is skipped on manual add and during imports, so the same secret cannot be stored twice under different labels.

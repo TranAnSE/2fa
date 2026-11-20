@@ -1,6 +1,6 @@
 # Code Standards
 
-Last updated: 2026-10-15
+Last updated: 2026-11-20
 
 ## Core Conventions
 
@@ -47,7 +47,7 @@ The `lib/` directory contains domain logic shared between the root app and exten
 - **No direct storage access**: Must accept storage backend as parameter or use abstracted interface
 - **Web Crypto only**: Use Web Crypto API, not Node.js crypto modules
 - **Parameterized APIs**: Crypto and ceremony modules take `cryptoApi`/`credentialsApi` parameters (defaulting to the globals) so Node tests can inject them
-- **Dependency exception**: `jsqr` is the sole runtime-bundled npm dependency (QR decoding); it is bundled by esbuild — no CDN or third-party origin is acceptable
+- **Dependency exception**: `jsqr` (QR decoding) and `qrcode` (QR export) are the only runtime-bundled npm dependencies; both are bundled by esbuild — no CDN or third-party origin is acceptable
 - **No extension-specific APIs**: Avoid `chrome.*` APIs directly
 
 ### Export Conventions
@@ -201,6 +201,7 @@ test: add encryption flow coverage
 npm run test:unit    # Vitest unit tests
 npm run test:e2e     # Playwright end-to-end tests
 npm test            # All tests
+npm run qa:ui       # UI quality gate (axe scans + responsive sweep)
 ```
 
 ## Security Considerations
@@ -237,6 +238,7 @@ npm test            # All tests
 
 ### CI/CD Pipeline
 - **Run on PR**: All tests execute on pull requests
+- **UI quality gate**: `npm run qa:ui` runs after the test job
 - **Main/master protection**: Version checks prevent inconsistent releases
 - **Artifact handling**: Playwright reports uploaded on test failures
 - **Manual trigger**: Can be initiated from Actions tab for testing

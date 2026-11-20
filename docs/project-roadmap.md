@@ -1,8 +1,8 @@
 # Project Roadmap
 
-Last updated: 2026-10-28
+Last updated: 2026-11-20
 
-## Current Status: 0.4.0 Released
+## Current Status: 0.4.0 Released (wave-2 hardening merged, unreleased)
 
 The Personal OTP Vault shipped the 0.3.0 product UI redesign (token system,
 codes-first shell, slide-over sheets) and released it together with the
@@ -10,6 +10,11 @@ migration-and-language wave as 0.4.0: Aegis + 2FAS import, single-entry QR
 export, complete i18n with a full Vietnamese translation plus a Language
 setting, an extension keyboard shortcut, and backup format v3 with a keyed
 HMAC checksum (authenticity, closing the integrity-only caveat).
+
+A follow-up UI-hardening wave is merged to `main` and sitting under
+`CHANGELOG.md` Unreleased: the `npm run qa:ui` CI gate, shared design tokens
+as `styles/tokens.css` bundled into both stylesheets, copy hotkeys 1–9, a
+tablet two-column layout band, and a network-first service worker.
 
 ## Completed Features (Done)
 
@@ -28,6 +33,8 @@ HMAC checksum (authenticity, closing the integrity-only caveat).
 - ✅ **PWA Support**: Service worker caching, offline capability, install prompt
 - ✅ **Chrome Extension**: Full-featured MV3 extension with QR import and session-unlock cache
 - ✅ **Copy History**: Track last 6 copied codes with optional auto-clear and copy haptics
+- ✅ **Copy Hotkeys**: `1`–`9` copy the Nth visible entry's code in screen order (root app; never fires while typing in inputs/dialogs or with a modifier held)
+- ✅ **Responsive Layout Bands**: entries render as a two-column grid on the 761–900px tablet band (manual order keeps one column)
 - ✅ **Privacy Features**: Code blurring, screenshot-safe mode, clipboard clear
 - ✅ **Visual Feedback**: Per-entry countdown rings, urgent indicators, dark mode (System/Light/Dark)
 - ✅ **Accessibility**: Axe-scanned views (zero criticals), keyboard-reachable controls, announced toasts
@@ -50,6 +57,7 @@ HMAC checksum (authenticity, closing the integrity-only caveat).
 - ✅ **Unit Tests**: Vitest coverage for `lib/` modules
 - ✅ **E2E Tests**: Playwright tests for web app, extension, and offline flows
 - ✅ **Visual Regression**: Screenshot-based UI testing
+- ✅ **UI Quality Gate**: `npm run qa:ui` — axe-core scans across viewport widths plus a responsive screenshot sweep, wired into CI after the test job
 - ✅ **Backup Safety**: Destructive testing for backup integrity
 - ✅ **CI/CD**: Automated testing on pull requests
 - ✅ **Release Automation**: GitHub Actions for extension packaging
@@ -84,22 +92,6 @@ manual biometric hardware matrix testing.
 - Extension may need enhanced BarcodeDetector configuration
 - E2E tests for Steam Guard format compatibility
 - Documentation updates for supported formats
-
-### Backup Format v3 (Future Proposal)
-**Rationale**: Current v2 format uses JSON with SHA-256 checksum. Future enhancements could improve compression, encryption options, and metadata.
-
-**Proposed Enhancements**:
-- Optional backup encryption with separate passphrase
-- Compression for large vaults
-- Enhanced metadata (export device info, app version)
-- Incremental backup support
-- Cloud backup options (with explicit user consent)
-
-**Implementation Considerations**:
-- New major version requiring migration path from v2
-- Backward compatibility requirements
-- Storage impact assessment
-- Security review of additional encryption layer
 
 ### Cross-Device Sync (Future Proposal - Non-Goal Caveat)
 **Rationale**: Users frequently request sync across devices. This is currently a non-goal due to privacy and complexity concerns.

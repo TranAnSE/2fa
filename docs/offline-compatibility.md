@@ -8,8 +8,8 @@ This project uses Service Worker + Cache Storage + Web App Manifest to provide a
 - Local entry access from browser storage when offline
 - Navigation fallback to the cached `index.html`
 - Faster repeated launches after the service worker is installed
-- Fully self-hosted shell: `jsqr` is bundled by esbuild and fonts are vendored woff2 files in `fonts/` — no CDN or third-party origins
-- Camera QR scanning and Google Authenticator migration-QR import work offline
+- Fully self-hosted shell: `jsqr` and `qrcode` are bundled by esbuild and fonts are vendored woff2 files in `fonts/` — no CDN or third-party origins
+- Camera QR scanning, Google Authenticator migration-QR import, and Aegis/2FAS file import work offline
 
 ## Content Security Policy
 
@@ -22,8 +22,10 @@ meta), framing protection is a HOSTING concern: serve the PWA with
 response header.
 
 Release note: `sw.js` `CACHE_NAME` must be bumped in every release that changes
-`app.bundle.js` — cache-first serving otherwise keeps stale bundles alive in
-already-open tabs.
+`app.bundle.js` or `styles.bundle.css` — serving is network-first (online users
+get fresh code), but an installed service worker only re-runs its install step
+and re-caches the APP_SHELL when the cache name changes, so the precached shell
+otherwise stays one release behind.
 
 ## Safari / iOS Checklist
 

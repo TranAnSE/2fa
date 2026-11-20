@@ -1,6 +1,6 @@
 # Product Overview and Development Requirements
 
-Last updated: 2026-10-15
+Last updated: 2026-11-20
 
 ## Product Purpose
 
@@ -78,6 +78,8 @@ Personal OTP Vault is a local-first, privacy-focused Time-based One-Time Passwor
 - **QR Code Import**: Support for QR image files and URLs
 - **Camera Scanning**: Real-time QR code detection with 2-frame confirmation
 - **Bulk Import**: Textarea for multiple `otpauth://` URIs
+- **Google Authenticator Migration**: otpauth-migration QR decoding with stitched batches and import preview (`lib/migration.js`)
+- **Third-Party App Import**: Aegis plain-text JSON and 2FAS backups decode through the same import preview (`lib/importers.js`; encrypted Aegis exports rejected with guidance)
 - **Validation**: Strict URI validation to prevent false positives
 
 #### FR3: Entry Management
@@ -87,6 +89,7 @@ Personal OTP Vault is a local-first, privacy-focused Time-based One-Time Passwor
 - **Grouping**: By issuer, tag, or no grouping
 - **Sorting**: Root app offers pinned-alphabetical, custom order, recent usage, and period (`index.html`); extension offers A-Z, manual, newest, and fastest timer (`extension/popup.html`)
 - **Bulk Operations**: Apply tags, remove entries, bulk actions
+- **QR Export**: Per-entry QR of the `otpauth://` URI with Copy URI and Download PNG (`buildOtpAuthUri`, vendored `qrcode` encoder), in both frontends
 
 #### FR4: Security Features
 - **Encryption**: Optional PBKDF2 + AES-256-GCM encrypted storage
@@ -97,9 +100,9 @@ Personal OTP Vault is a local-first, privacy-focused Time-based One-Time Passwor
 - **Clipboard Clear**: Optional auto-clear clipboard after copying
 
 #### FR5: Backup and Recovery
-- **Export Format**: JSON-based backup format (version 2)
-- **Checksum Validation**: SHA-256 checksum for integrity verification
-- **Migration Support**: Automatic v1 to v2 backup format migration
+- **Export Format**: JSON-based backup format (version 3)
+- **Checksum Validation**: SHA-256 checksum for integrity verification; encrypted exports additionally carry a keyed HMAC-SHA256 mac verified before decryption (`verifyBackupMac`)
+- **Migration Support**: v1 backups migrate automatically; v2 files import as-is
 - **Import Strategies**: Merge with existing entries or replace vault
 - **Duplicate Detection**: Skip duplicate entries during import (entries match when secret, digits, and period are identical; label is not part of the match)
 - **Review Dialog**: Preview changes before applying import
@@ -109,7 +112,7 @@ Personal OTP Vault is a local-first, privacy-focused Time-based One-Time Passwor
 - **Visual Feedback**: Urgent indicator when codes expire within 10 seconds
 - **Copy History**: Track last 6 copied codes (root app; see `addCopyHistory` in `app.js`)
 - **Clipboard Clear**: Optional clear 30 seconds after copy (root app; see `index.html`)
-- **Keyboard Shortcuts**: `/` focuses search, `n` focuses the secret input (root app; see `bindEvents` in `app.js`)
+- **Keyboard Shortcuts**: `/` focuses search, `n` opens the add sheet, `1`–`9` copy the Nth visible entry's code (root app; see `bindEvents` in `app.js`)
 - **Toast Notifications**: Feedback for user actions and errors
 - **Confirm Dialogs**: Destructive action confirmation
 - **Online/Offline Status**: Visual indicator for connectivity state
@@ -215,7 +218,7 @@ Personal OTP Vault is a local-first, privacy-focused Time-based One-Time Passwor
 
 ## Development Priorities
 
-### Current Focus (v0.3.x)
+### Current Focus (v0.4.x)
 - **Stability**: Ensure reliable TOTP generation and vault operations
 - **Cross-Platform Parity**: Feature equality between web app and extension
 - **Testing**: Comprehensive test coverage for domain logic and UI flows
@@ -223,7 +226,6 @@ Personal OTP Vault is a local-first, privacy-focused Time-based One-Time Passwor
 
 ### Future Enhancements (Proposals)
 - **Enhanced QR Support**: Steam Guard format and 8-digit code optimization
-- **Backup Format v3**: Enhanced encryption and compression
 - **Cross-Device Sync**: Optional encrypted sync with explicit user consent
 - **Additional Extension Stores**: Firefox and Safari extension support
 
